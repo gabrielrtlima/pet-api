@@ -1,6 +1,5 @@
 package com.example.petapi.controllers;
 
-import com.example.petapi.models.dtos.EmailDto;
 import com.example.petapi.models.entities.Usuario;
 import com.example.petapi.services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +39,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/usuario/buscar")
-    public Usuario buscar(@RequestBody EmailDto emailDto) {
-        return usuarioService.buscar(emailDto.getEmail());
+    public Usuario buscar(@RequestParam String email) {
+        return usuarioService.buscar(email);
     }
 }
