@@ -2,6 +2,7 @@ package com.example.petapi.services;
 
 import com.example.petapi.models.entities.Usuario;
 import com.example.petapi.repositories.IUsuarioRepository;
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class UsuarioService {
         verificarCampos(usuario);
         validarEmail(usuario.getEmail());
 
-        if(usuarioRepository.findByEmail(usuario.getEmail()) != null) {
+        if(usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 
@@ -35,6 +36,8 @@ public class UsuarioService {
         validarPeso(usuario.getPesoInicial());
 
         usuario.setDataInicial(LocalDate.now());
+        validarData(usuario.getDataInicial(), usuario.getDataObjetivo());
+
         usuarioRepository.save(usuario);
     }
 
@@ -76,6 +79,8 @@ public class UsuarioService {
 
         validarAltura(usuario.getAltura());
         validarPeso(usuario.getPesoInicial());
+
+        validarData(usuario.getDataInicial(), usuario.getDataObjetivo());
 
         return usuarioRepository.save(usuario);
     }
@@ -119,6 +124,13 @@ public class UsuarioService {
     private void validarPeso(double peso) {
         if(peso < 30 || peso > 300){
             throw new RuntimeException("Peso inválido");
+        }
+    }
+
+    private void validarData(LocalDate dataInicio, LocalDate dataFim) {
+        Days d = Days.daysBetween(dataInicio, dataFim);
+        if(d.getDays() < 7){
+            throw new RuntimeException("Data inválida, a data do seu objetivo deve ter no mínimo 7 dias de diferença");
         }
     }
 }
