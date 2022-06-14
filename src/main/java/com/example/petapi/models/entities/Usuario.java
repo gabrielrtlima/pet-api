@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.joda.time.LocalDate;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class Usuario {
@@ -35,4 +36,6 @@ public class Usuario {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate dataObjetivo;
 
+    @OneToMany(mappedBy = "usuario")
+    private List<Peso> pesos;
 }
