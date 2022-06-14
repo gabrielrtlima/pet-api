@@ -20,7 +20,7 @@ public class UsuarioService {
 
     public void incluir(Usuario usuario) {
 
-        if(usuario == null){
+        if (usuario == null) {
             throw new RuntimeException("Usuario não pode ser nulo");
         }
 
@@ -28,7 +28,7 @@ public class UsuarioService {
         verificarCampos(usuario);
         validarEmail(usuario.getEmail());
 
-        if(usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
+        if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 
@@ -51,17 +51,16 @@ public class UsuarioService {
 
     public Usuario buscar(String email) {
         Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
-        if(usuario.isEmpty()) {
+        if (usuario.isEmpty()) {
             throw new RuntimeException("Usuario não encontrado");
         }
         return usuario.get();
     }
 
     public Usuario alterar(Usuario usuario) {
-        verificarCampos(usuario);
-        validarEmail(usuario.getEmail());
 
-        if(usuarioRepository.findByEmail(usuario.getEmail()) == null) {
+        validarEmail(usuario.getEmail());
+        if (usuarioRepository.findByEmail(usuario.getEmail()) == null) {
             throw new RuntimeException("Não há usuário cadastrado com o email:" + usuario.getEmail());
         }
 
@@ -77,16 +76,44 @@ public class UsuarioService {
             throw new RuntimeException("Não existe usuario cadastrado com o identificador:" + usuario.getId());
         }
 
+        if(usuario.getNome() != null) {
+            user.setNome(usuario.getNome());
+        }
+
+        if(usuario.getEmail() != null) {
+            user.setEmail(usuario.getEmail());
+        }
+
+        if(usuario.getDataObjetivo() != null) {
+            user.setDataObjetivo(usuario.getDataObjetivo());
+        }
+
+        if(usuario.getAltura() != 0) {
+            user.setAltura(usuario.getAltura());
+        }
+
+        if(usuario.getPesoInicial() != 0) {
+            user.setPesoInicial(usuario.getPesoInicial());
+        }
+
+        if(usuario.getPesoDesejado() != 0) {
+            user.setPesoDesejado(usuario.getPesoDesejado());
+        }
+
+        if(usuario.getSexo() != null) {
+            user.setSexo(usuario.getSexo());
+        }
+
+        verificarCampos(usuario);
         validarAltura(usuario.getAltura());
         validarPeso(usuario.getPesoInicial());
-
         validarData(usuario.getDataInicial(), usuario.getDataObjetivo());
 
         return usuarioRepository.save(usuario);
     }
 
     public void excluir(Long id) {
-        if(id == null || id == 0){
+        if (id == null || id == 0) {
             throw new RuntimeException("Informe um indentificador válido");
         }
 
@@ -98,9 +125,9 @@ public class UsuarioService {
     }
 
     private void verificarCampos(Usuario usuario) {
-        if(!StringUtils.hasLength(usuario.getNome()) || !StringUtils.hasLength((usuario.getEmail()))
+        if (!StringUtils.hasLength(usuario.getNome()) || !StringUtils.hasLength((usuario.getEmail()))
                 || usuario.getAltura() == 0 || usuario.getPesoInicial() == 0 || usuario.getPesoDesejado() == 0
-                || usuario.getDataObjetivo() == null || usuario.getSexo() == null){
+                || usuario.getDataObjetivo() == null || usuario.getSexo() == null) {
             throw new RuntimeException("Todos os campos devem ser preenchidos");
         }
     }
@@ -116,20 +143,20 @@ public class UsuarioService {
     }
 
     private void validarAltura(int altura) {
-        if(altura < 100 || altura > 300){
+        if (altura < 100 || altura > 300) {
             throw new RuntimeException("Altura inválida");
         }
     }
 
     private void validarPeso(double peso) {
-        if(peso < 30 || peso > 300){
+        if (peso < 30 || peso > 300) {
             throw new RuntimeException("Peso inválido");
         }
     }
 
     private void validarData(LocalDate dataInicio, LocalDate dataFim) {
         Days d = Days.daysBetween(dataInicio, dataFim);
-        if(d.getDays() < 7){
+        if (d.getDays() < 7) {
             throw new RuntimeException("Data inválida, a data do seu objetivo deve ter no mínimo 7 dias de diferença");
         }
     }
