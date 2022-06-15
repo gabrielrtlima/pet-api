@@ -1,6 +1,6 @@
 package com.example.petapi.models.entities;
 
-import com.example.petapi.models.SexoEnum;
+import com.example.petapi.models.enums.SexoEnum;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

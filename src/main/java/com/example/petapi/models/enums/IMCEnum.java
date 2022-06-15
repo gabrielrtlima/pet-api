@@ -1,4 +1,4 @@
-package com.example.petapi.models.vo;
+package com.example.petapi.models.enums;
 
 public enum IMCEnum {
 
