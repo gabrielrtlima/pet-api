@@ -1,4 +1,4 @@
-package com.example.petapi.models.vo;
+package com.example.petapi.models.vos;
 
 import com.example.petapi.models.enums.IMCEnum;
 import lombok.Builder;
@@ -9,7 +9,6 @@ import lombok.Data;
 public class IMCVO {
 
     private double IMC;
-
     private IMCEnum classificacao;
 
 }

@@ -1,4 +1,4 @@
-package com.example.petapi.models.vo;
+package com.example.petapi.models.vos;
 
 import lombok.Data;
 
@@ -6,5 +6,5 @@ import lombok.Data;
 public class MonitoramentoVO {
 
     private IMCVO IMC;
-
+    private EvolucaoVO evolucao;
 }
