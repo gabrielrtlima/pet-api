@@ -3,10 +3,7 @@ package com.example.petapi.services;
 import com.example.petapi.models.entities.Peso;
 import com.example.petapi.models.entities.Usuario;
 import com.example.petapi.models.enums.IMCEnum;
-import com.example.petapi.models.vos.ComparativoVO;
-import com.example.petapi.models.vos.EvolucaoVO;
-import com.example.petapi.models.vos.IMCVO;
-import com.example.petapi.models.vos.MonitoramentoVO;
+import com.example.petapi.models.vos.*;
 import com.example.petapi.repositories.IPesoRepository;
 import com.example.petapi.repositories.IUsuarioRepository;
 import org.joda.time.Days;
@@ -17,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -61,6 +59,10 @@ public class PesoService {
         monitoramento.setIMC(IMC);
         EvolucaoVO evolucao = calcularEvo(optUsuario, optPeso);
         monitoramento.setEvolucao(evolucao);
+        HistoricoVO historico = montarHistorico(email);
+        monitoramento.setHistorico(historico);
+        ComparativoVO comparativo = montarComparativo(optUsuario);
+        monitoramento.setComparativo(comparativo);
         return monitoramento;
     }
 
@@ -69,6 +71,7 @@ public class PesoService {
         double altura = optUsuario.get().getAltura()/100.0;
         double peso = optPeso.get().getPeso();
         double IMC = (peso/(altura * altura));
+        double IMCAproximado = BigDecimal.valueOf(IMC).setScale(2, RoundingMode.HALF_UP).doubleValue();
 
         IMCEnum grau = IMCEnum.ABAIXO_DO_PESO;
 
@@ -82,7 +85,7 @@ public class PesoService {
             grau = IMCEnum.ABAIXO_DO_PESO;
         }
 
-        return IMCVO.builder().IMC(IMC).classificacao(grau).build();
+        return IMCVO.builder().IMC(IMCAproximado).classificacao(grau).build();
     }
 
     private EvolucaoVO calcularEvo(Optional<Usuario> optUsuario, Optional<Peso> optPeso) {
@@ -104,4 +107,30 @@ public class PesoService {
 
     }
 
+    private HistoricoVO montarHistorico(String email) {
+
+        List<Peso> pesos = pesoRepository.findByUsuarioEmailOrderByDataAsc(email);
+
+        HistoricoVO historico = HistoricoVO.builder().pesos(pesos).build();
+
+        return historico;
+    }
+
+    private ComparativoVO montarComparativo(Optional<Usuario> optUsuario) {
+        List<Peso> pesos = pesoRepository.findByUsuarioEmailOrderByDataAsc(optUsuario.get().getEmail());
+        ComparativoVO comparativo = new ComparativoVO();
+
+        pesos.forEach(peso -> {
+            if(Days.daysBetween(optUsuario.get().getDataInicial(), peso.getData()).getDays() == 7){
+                comparativo.set_7dias(peso.getPeso());
+            } else if (Days.daysBetween(optUsuario.get().getDataInicial(), peso.getData()).getDays() == 30) {
+                comparativo.set_30dias(peso.getPeso());
+            } else if (Days.daysBetween(optUsuario.get().getDataInicial(), peso.getData()).getDays() == 365) {
+                comparativo.set_1ano(peso.getPeso());
+            }
+        });
+
+        comparativo.setUltimaMedida(pesos.get(pesos.size()-1).getPeso());
+        return comparativo;
+    }
 }
