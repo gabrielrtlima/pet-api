@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController @RequestMapping("/api") @CrossOrigin("*")
+@RestController
+@RequestMapping("/api")
+@CrossOrigin("*")
 public class UsuarioController {
 
     @Autowired
@@ -19,13 +21,13 @@ public class UsuarioController {
     }
 
     @PostMapping("/usuario")
-    public void incluir(@RequestBody Usuario usuario) {
-        usuarioService.incluir(usuario);
+    public Usuario incluir(@RequestBody Usuario usuario) {
+        return usuarioService.incluir(usuario);
     }
 
     @PutMapping("/usuario")
-    public void alterar(@RequestBody Usuario usuario) {
-        usuarioService.alterar(usuario);
+    public Usuario alterar(@RequestBody Usuario usuario) {
+        return usuarioService.alterar(usuario);
     }
 
     @GetMapping("/usuario/{id}")

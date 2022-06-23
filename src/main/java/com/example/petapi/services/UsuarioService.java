@@ -2,6 +2,7 @@ package com.example.petapi.services;
 
 import com.example.petapi.models.entities.Usuario;
 import com.example.petapi.repositories.IUsuarioRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,32 +14,33 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class UsuarioService {
 
     @Autowired
     private IUsuarioRepository usuarioRepository;
 
-    public void incluir(Usuario usuario) {
+    public Usuario incluir(Usuario usuario) {
 
         if (usuario == null) {
             throw new RuntimeException("Usuario não pode ser nulo");
         }
 
         usuario.setId(null);
-        verificarCampos(usuario);
-        validarEmail(usuario.getEmail());
+        verificarPreenchimentoCamposObrigatorios(usuario);
+        validarPreenchimentoEmail(usuario.getEmail());
 
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 
-        validarAltura(usuario.getAltura());
-        validarPeso(usuario.getPesoInicial());
+        validarPreenchimentoAltura(usuario.getAltura());
+        validarPreenchimentoPeso(usuario.getPesoInicial());
 
         usuario.setDataInicial(LocalDate.now());
-        validarData(usuario.getDataInicial(), usuario.getDataObjetivo());
+        validarPreenchimentoData(usuario.getDataInicial(), usuario.getDataObjetivo());
 
-        usuarioRepository.save(usuario);
+        return usuarioRepository.save(usuario);
     }
 
     public List<Usuario> listar() {
@@ -59,57 +61,41 @@ public class UsuarioService {
 
     public Usuario alterar(Usuario usuario) {
 
-        validarEmail(usuario.getEmail());
-        if (usuarioRepository.findByEmail(usuario.getEmail()) == null) {
-            throw new RuntimeException("Não há usuário cadastrado com o email:" + usuario.getEmail());
+        if(usuario == null || usuario.getId() == null) {
+            log.error("Os dados do usuário devem ser informados para realizar a alteração");
+            throw new RuntimeException("Os dados do usuário devem ser informados");
         }
 
-        Usuario user = usuarioRepository.findByEmail(usuario.getEmail()).get();
-        usuario.setId(user.getId());
-        usuario.setDataInicial(user.getDataInicial());
+        Optional<Usuario> optUsuarioBD = usuarioRepository.findById(usuario.getId());
+        Usuario usuarioBD = optUsuarioBD.get();
 
-        if (usuario.getId() == null || usuario.getId() == 0l) {
-            throw new RuntimeException("Informe um identificador de usuário");
-        }
-
-        if (!this.usuarioRepository.existsById(usuario.getId())) {
+        if (optUsuarioBD.isEmpty()) {
+            log.error("Não há usuário cadastro com o id: {}", usuario.getId());
             throw new RuntimeException("Não existe usuario cadastrado com o identificador:" + usuario.getId());
         }
 
-        if(usuario.getNome() != null) {
-            user.setNome(usuario.getNome());
+        verificarPreenchimentoCamposObrigatorios(usuario);
+        validarPreenchimentoEmail(usuario.getEmail());
+        validarPreenchimentoAltura(usuario.getAltura());
+        validarPreenchimentoPeso(usuario.getPesoInicial());
+        validarPreenchimentoData(usuarioBD.getDataInicial(), usuario.getDataObjetivo());
+
+        if(usuarioRepository.findByEmailAndIdNot(usuario.getEmail(), usuario.getId()).isPresent()) {
+            log.error("Usuário está tentando alterar para um email já cadastrado, email: ", usuario.getEmail());
+            throw new RuntimeException("Usuário com email já cadastrado: " + usuario.getEmail());
         }
 
-        if(usuario.getEmail() != null) {
-            user.setEmail(usuario.getEmail());
-        }
+        usuarioBD.setNome(usuario.getNome());
+        usuarioBD.setEmail(usuario.getEmail());
+        usuarioBD.setAltura(usuario.getAltura());
+        usuarioBD.setPesoInicial(usuario.getPesoInicial());
+        usuarioBD.setDataObjetivo(usuario.getDataObjetivo());
+        usuarioBD.setPesoDesejado(usuario.getPesoDesejado());
+        usuarioBD.setSexo(usuario.getSexo());
 
-        if(usuario.getDataObjetivo() != null) {
-            user.setDataObjetivo(usuario.getDataObjetivo());
-        }
-
-        if(usuario.getAltura() != 0) {
-            user.setAltura(usuario.getAltura());
-        }
-
-        if(usuario.getPesoInicial() != 0) {
-            user.setPesoInicial(usuario.getPesoInicial());
-        }
-
-        if(usuario.getPesoDesejado() != 0) {
-            user.setPesoDesejado(usuario.getPesoDesejado());
-        }
-
-        if(usuario.getSexo() != null) {
-            user.setSexo(usuario.getSexo());
-        }
-
-        verificarCampos(usuario);
-        validarAltura(usuario.getAltura());
-        validarPeso(usuario.getPesoInicial());
-        validarData(usuario.getDataInicial(), usuario.getDataObjetivo());
-
-        return usuarioRepository.save(usuario);
+        usuarioRepository.save(usuarioBD);
+        log.debug("Usuario alterado: {}", usuarioBD);
+        return usuarioBD;
     }
 
     public void excluir(Long id) {
@@ -124,39 +110,48 @@ public class UsuarioService {
         usuarioRepository.deleteById(id);
     }
 
-    private void verificarCampos(Usuario usuario) {
+    private void verificarPreenchimentoCamposObrigatorios(Usuario usuario) {
         if (!StringUtils.hasLength(usuario.getNome()) || !StringUtils.hasLength((usuario.getEmail()))
                 || usuario.getAltura() == 0 || usuario.getPesoInicial() == 0 || usuario.getPesoDesejado() == 0
                 || usuario.getDataObjetivo() == null || usuario.getSexo() == null) {
-            throw new RuntimeException("Todos os campos devem ser preenchidos");
+            log.error("Os campos obrigatórios não foram preenchidos");
+            throw new RuntimeException("Os campos: Nome, Email, Altura, Peso Inicial, Peso Desejado, Data Objetivo e Sexo são obrigatórios");
         }
     }
 
-    private void validarEmail(String email) {
+    private void validarPreenchimentoEmail(String email) {
         try {
             InternetAddress emailAddress = new InternetAddress(email);
             emailAddress.validate();
         } catch (Exception e) {
-            throw new RuntimeException("Email inválido");
+            log.error("Ocorreu um erro ao validar o email usando a api de validar email", e);
+            throw new RuntimeException("Email inválido", e);
         }
 
     }
 
-    private void validarAltura(int altura) {
+    private void validarPreenchimentoAltura(int altura) {
         if (altura < 100 || altura > 300) {
-            throw new RuntimeException("Altura inválida");
+            log.error("Preenchimento da altura veio fora do intervalo permitido");
+            throw new RuntimeException("Altura deve está entre 100 e 300");
         }
     }
 
-    private void validarPeso(double peso) {
+    private void validarPreenchimentoPeso(double peso) {
         if (peso < 30 || peso > 300) {
-            throw new RuntimeException("Peso inválido");
+            log.error("Preenchimento do peso veio fora do intervalo permitido");
+            throw new RuntimeException("Peso deve está entre 30 e 300");
         }
     }
 
-    private void validarData(LocalDate dataInicio, LocalDate dataFim) {
-        Days d = Days.daysBetween(dataInicio, dataFim);
-        if (d.getDays() < 7) {
+    private void validarPreenchimentoData(LocalDate dataInicio, LocalDate dataFim) {
+        if (dataInicio.isAfter(dataFim)) {
+            log.error("Usuário informou a data final menor que a data inicial");
+            throw new RuntimeException("Data inválida, a data do seu objetivo deve ser maior que a data de início");
+        }
+
+        if (Days.daysBetween(dataInicio, dataFim).getDays() < 7) {
+            log.error("Usuário informou a data de início e fim menor que 7 dias");
             throw new RuntimeException("Data inválida, a data do seu objetivo deve ter no mínimo 7 dias de diferença");
         }
     }
